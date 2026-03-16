@@ -1,0 +1,175 @@
+---
+title: "usePreviewModal()"
+description: "Zustand store for controlling the product quick-preview modal"
+---
+
+## Overview
+
+`usePreviewModal` is a lightweight [Zustand](https://zustand-demo.pmnd.rs/) store (no persistence) that controls the visibility and content of the product quick-preview modal. Any client component in the app can call it to open the modal; the modal itself is rendered once globally via `<ModalProvider>`.
+
+```typescript
+import usePreviewModal from "@/hooks/use-preview-modal";
+```
+
+## Interface
+
+```typescript
+interface PreviewModalStore {
+  isOpen: boolean;
+  data?: Product;
+  onOpen: (data: Product) => void;
+  onClose: () => void;
+}
+```
+
+## Source
+
+```typescript
+import { create } from "zustand";
+import { Product } from "@/types/types";
+
+interface PreviewModalStore {
+  isOpen: boolean;
+  data?: Product;
+  onOpen: (data: Product) => void;
+  onClose: () => void;
+}
+
+const usePreviewModal = create<PreviewModalStore>((set) => ({
+  isOpen: false,
+  data: undefined,
+  onOpen: (data: Product) => set({ isOpen: true, data }),
+  onClose: () => set({ isOpen: false }),
+}));
+
+export default usePreviewModal;
+```
+
+## Fields and Methods
+
+<ResponseField name="isOpen" type="boolean">
+  Whether the preview modal is currently visible. Defaults to `false`.
+</ResponseField>
+
+<ResponseField name="data" type="Product | undefined">
+  The product being previewed. `undefined` when the modal has never been opened
+  or after it has been closed.
+</ResponseField>
+
+<ResponseField name="onOpen" type="(data: Product) => void">
+  Opens the modal and sets the product to display. Sets `isOpen` to `true` and
+  stores the product in `data`.
+
+  <ParamField path="data" type="Product" required>
+    The `Product` object to display inside the preview modal.
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="onClose" type="() => void">
+  Closes the modal by setting `isOpen` to `false`. The `data` field is **not**
+  cleared on close — it remains set to the last previewed product until `onOpen`
+  is called again with new data.
+</ResponseField>
+
+## Usage Examples
+
+### Triggering the modal from a product card
+
+The `ProductCard` component calls `onOpen` with the card's product data when
+the expand icon button is clicked.
+
+```typescript
+// components/ui/product-card.tsx
+"use client";
+
+import { MouseEventHandler } from "react";
+import usePreviewModal from "@/hooks/use-preview-modal";
+
+const ProductCard: React.FC<{ data: Product }> = ({ data }) => {
+  const previewModal = usePreviewModal();
+
+  const onPreview: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    previewModal.onOpen(data);
+  };
+
+  // ...
+};
+```
+
+### Rendering the modal via PreviewModal component
+
+`PreviewModal` subscribes to the store and delegates open/close control back
+to the store.
+
+```typescript
+// components/preview-modal.tsx
+import usePreviewModal from "@/hooks/use-preview-modal";
+import Modal from "./ui/Modal";
+import Gallery from "./Gallery";
+import Info from "./Info";
+
+const PreviewModal = () => {
+  const previewModal = usePreviewModal();
+  const product = usePreviewModal((state) => state.data);
+
+  if (!product) return null;
+
+  return (
+    <Modal open={previewModal.isOpen} onClose={previewModal.onClose}>
+      <div className="grid w-full grid-cols-1 items-center gap-x-6 gap-y-8 sm:grid-cols-12 lg:gap-x-8">
+        <div className="sm:col-span-4 lg:col-span-5">
+          <Gallery images={product.images} />
+        </div>
+        <div className="sm:col-span-8 lg:col-span-7">
+          <Info data={product} />
+        </div>
+      </div>
+    </Modal>
+  );
+};
+```
+
+## ModalProvider
+
+<Note>
+  The `<PreviewModal>` component is mounted **once** at the app root inside
+  `<ModalProvider>` (`providers/modal-provider.tsx`). You do not need to add
+  `<PreviewModal>` to individual pages — simply call `usePreviewModal().onOpen(data)`
+  from any client component and the globally-mounted modal will open.
+</Note>
+
+```typescript
+// providers/modal-provider.tsx
+"use client";
+
+import PreviewModal from "@/components/preview-modal";
+import React, { useEffect, useState } from "react";
+
+const ModalProvider = () => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
+
+  return (
+    <>
+      <PreviewModal />
+    </>
+  );
+};
+
+export default ModalProvider;
+```
+
+`ModalProvider` itself uses the same `isMounted` guard as `useCart` to avoid
+SSR hydration errors, since Zustand state is initialised on the client.
+
+<Warning>
+  `usePreviewModal` state is **in-memory only** — it is not persisted to
+  `localStorage` or any other storage. Refreshing the page will always start
+  with `isOpen: false` and `data: undefined`.
+</Warning>

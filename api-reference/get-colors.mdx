@@ -1,0 +1,60 @@
+---
+title: "getColors()"
+description: "Fetches all available product colors from the store API"
+---
+
+`getColors` is an async server-side action that retrieves the full list of colors from the `GET /colors` endpoint. It accepts no parameters and always returns all colors configured in the store.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getColors = async (): Promise<Color[]>
+```
+
+## Parameters
+
+This function takes no parameters.
+
+## Returns
+
+`Promise<Color[]>` — Resolves to an array of all color objects available in the store.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the color.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the color (e.g., `"Red"`, `"Navy Blue"`).
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Hex or CSS color value used to render a color swatch (e.g., `"#FF0000"`).
+</ResponseField>
+
+## Example usage
+
+**Category page — loading colors to populate the color filter:**
+
+```typescript
+import getColors from "@/actions/get-colors";
+
+// app/(routes)/category/[categoryId]/page.tsx (Server Component)
+const colors = await getColors();
+
+// colors is passed to the Filter component
+// <Filter data={colors} name="Colors" valueKey="colorId" />
+```
+
+## Response shape
+
+```typescript
+interface Color {
+  id: string;
+  name: string;
+  value: string;
+}
+```

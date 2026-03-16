@@ -1,0 +1,78 @@
+---
+title: "Introduction"
+description: "Overview of E-Dokan Store — a Next.js 13 e-commerce storefront"
+---
+
+E-Dokan Store is a consumer-facing e-commerce storefront built with Next.js 13 App Router. It is a **frontend-only** application that fetches all data (products, categories, billboards) from a separate backend API at runtime. The storefront itself contains no database or admin logic.
+
+## Architecture overview
+
+The storefront and the backend API are two independent services.
+
+```
+┌─────────────────────────────┐        ┌──────────────────────┐
+│        E-Dokan Store        │        │     Backend API      │
+│      (this repository)      │  HTTP  │  (separate service)  │
+│                             │───────▶│                      │
+│  Next.js 13 · App Router    │        │  Products, Categories│
+│  Tailwind · Zustand         │        │  Billboards, Orders  │
+└─────────────────────────────┘        └──────────────────────┘
+```
+
+The storefront resolves the API base URL from the `NEXT_PUBLIC_API_URL` environment variable. Every server component that needs data (e.g. the home page, category pages, product pages) calls a typed action function from `actions/` which issues a `fetch` request to that base URL.
+
+## Directory structure
+
+```
+ecommerce-store/
+├── app/                  # Next.js 13 App Router pages and layouts
+│   ├── layout.tsx        # Root layout (Navbar, Footer, providers)
+│   └── (routes)/         # Route group containing all page files
+│       ├── page.tsx      # Home page — billboard + featured products
+│       ├── category/[categoryId]/
+│       ├── product/[productId]/
+│       └── cart/
+├── actions/              # Server-side data-fetching helpers (fetch wrappers)
+├── components/           # Shared UI components (Navbar, ProductList, etc.)
+│   └── ui/               # Primitive components (Button, Container, etc.)
+├── hooks/                # Custom React hooks (cart state, preview modal)
+├── lib/                  # Utility helpers (cn, currency formatter)
+├── providers/            # Client-side providers mounted in the root layout
+│   ├── modal-provider.tsx   # Mounts the product preview modal
+│   └── toast-provider.tsx   # Mounts react-hot-toast <Toaster />
+├── types/                # Shared TypeScript interfaces (Product, Category, etc.)
+└── public/               # Static assets
+```
+
+## Tech stack
+
+| Technology | Version | Purpose |
+|---|---|---|
+| [Next.js](https://nextjs.org) | 13.4 | React framework — App Router, server components, image optimisation |
+| TypeScript | 5.1 | Static typing across the entire codebase |
+| Tailwind CSS | 3.3 | Utility-first styling |
+| Zustand | 4.3 | Client-side cart state management |
+| Axios | 1.4 | HTTP client used for the checkout request |
+| Headless UI | 1.7 | Accessible dialog and disclosure primitives |
+| Lucide React | 0.261 | Icon set |
+| react-hot-toast | 2.4 | Toast notifications (add to cart, etc.) |
+| Urbanist | — | Google Font applied to the root layout |
+
+## Prerequisites
+
+Before running the storefront you need:
+
+- **Node.js 18 or later** — the version required by Next.js 13.
+- **A running backend API** — the storefront will render empty pages (no products, no billboard) without a valid `NEXT_PUBLIC_API_URL`. The API must expose the endpoints consumed by the `actions/` helpers (`/products`, `/categories`, `/billboards/:id`, etc.).
+
+<Note>
+  E-Dokan Store is the storefront only. If you do not yet have a backend API running, set one up before continuing.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo, configure your environment variable, and have the storefront running locally in under 5 minutes.
+  </Card>
+</CardGroup>

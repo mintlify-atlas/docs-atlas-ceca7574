@@ -1,0 +1,63 @@
+---
+title: "getBillboard()"
+description: "Fetches a single billboard by ID from the store API"
+---
+
+`getBillboard` is an async server-side action that retrieves a single billboard from the `GET /billboards/:id` endpoint using the billboard's unique identifier. Billboards are hero-style banners displayed at the top of store pages.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getBillboard = async (id: string): Promise<Billboard>
+```
+
+## Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the billboard to fetch. On the homepage this is
+  typically a hardcoded ID that represents the store's main hero banner.
+</ParamField>
+
+## Returns
+
+`Promise<Billboard>` — Resolves to a single billboard object matching the given ID.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the billboard.
+</ResponseField>
+
+<ResponseField name="label" type="string">
+  Text label displayed as the headline on the billboard.
+</ResponseField>
+
+<ResponseField name="imageUrl" type="string">
+  URL of the background image rendered behind the billboard label.
+</ResponseField>
+
+## Example usage
+
+**Homepage — loading the main hero billboard with a hardcoded ID:**
+
+```typescript
+import getBillboard from "@/actions/get-billboard";
+
+// app/page.tsx (Server Component)
+const billboard = await getBillboard("your-billboard-id");
+
+// Passed directly to the Billboard component
+// <Billboard data={billboard} />
+```
+
+## Response shape
+
+```typescript
+interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+```

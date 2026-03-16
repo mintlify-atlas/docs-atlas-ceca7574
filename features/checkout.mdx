@@ -1,0 +1,101 @@
+---
+title: "Checkout"
+description: "Stripe-powered checkout flow"
+---
+
+Checkout is initiated from the Order Summary panel on the cart page. The store backend creates a Stripe Checkout session and returns a redirect URL. The browser navigates to Stripe's hosted payment page, and on return the cart handles the success or cancellation outcome.
+
+## Checkout flow
+
+<Steps>
+  <Step title="Shopper clicks Checkout">
+    The "Checkout" button in the `Summary` component is enabled only when there is at least one item in the cart and no request is already in flight.
+  </Step>
+  <Step title="POST to the checkout endpoint">
+    An `axios.post` sends the IDs of all cart items to the backend:
+
+    ```typescript app/(routes)/cart/components/Summary.tsx
+    const onCheckout = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/checkout`,
+          {
+            productIds: items.map((item) => item.id),
+          }
+        );
+
+        window.location = response.data.url;
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    ```
+  </Step>
+  <Step title="Stripe redirect">
+    The backend creates a Stripe Checkout session and returns `{ url: string }`. The browser is immediately redirected to that Stripe-hosted payment page via `window.location = response.data.url`.
+  </Step>
+  <Step title="Payment outcome">
+    After the user completes or abandons the payment, Stripe redirects back to the cart page with a query parameter:
+    - `?success=1` — payment completed
+    - `?canceled=1` — payment abandoned or failed
+  </Step>
+</Steps>
+
+## Loading state
+
+While the POST request is in flight, `isLoading` is set to `true`. The button text changes from `"Checkout"` to `"Processing.."` and the button is disabled to prevent double-submission:
+
+```typescript
+<Button
+  onClick={onCheckout}
+  disabled={items.length === 0 || isLoading}
+  className="w-full mt-6"
+>
+  {isLoading ? "Processing.." : "Checkout"}
+</Button>
+```
+
+## Handling the return
+
+The `Summary` component reads search params on mount and on every change using a `useEffect`:
+
+```typescript app/(routes)/cart/components/Summary.tsx
+useEffect(() => {
+  if (searchParams.get("success")) {
+    toast.success("Payment completed.");
+    removeAll();
+  }
+
+  if (searchParams.get("canceled")) {
+    toast.error("Something went wrong.");
+  }
+}, [searchParams, removeAll]);
+```
+
+<Columns cols={2}>
+  <Card title="Success" icon="circle-check">
+    `?success=1` triggers a success toast (`"Payment completed."`) and calls `removeAll()` to clear the cart from both memory and `localStorage`.
+  </Card>
+  <Card title="Cancelled" icon="circle-x">
+    `?canceled=1` triggers an error toast (`"Something went wrong."`) and leaves the cart contents intact so the shopper can try again.
+  </Card>
+</Columns>
+
+## API request reference
+
+<ParamField path="body.productIds" type="string[]" required>
+  Array of product IDs for all items currently in the cart.
+</ParamField>
+
+The endpoint is read from the `NEXT_PUBLIC_API_URL` environment variable:
+
+```bash
+NEXT_PUBLIC_API_URL=https://your-api-domain.com
+```
+
+<Warning>
+`NEXT_PUBLIC_API_URL` must be set in your `.env` file or deployment environment. If it is undefined, the checkout POST will fail silently — the error is caught and logged to the console only.
+</Warning>

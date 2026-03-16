@@ -1,0 +1,195 @@
+---
+title: "getProducts()"
+description: "Fetches a filtered list of products from the store API"
+---
+
+`getProducts` is an async server-side action that retrieves a list of products from the `GET /products` endpoint. All query parameters are optional — omitting them returns the full product catalog.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getProducts = async ({
+  categoryId,
+  colorId,
+  sizeId,
+  isFeatured,
+}: Query): Promise<Product[]>
+```
+
+## Parameters
+
+<ParamField query="categoryId" type="string">
+  Filter products by category ID. When provided, only products belonging to the
+  specified category are returned.
+</ParamField>
+
+<ParamField query="colorId" type="string">
+  Filter products by color ID. When provided, only products with the specified
+  color are returned.
+</ParamField>
+
+<ParamField query="sizeId" type="string">
+  Filter products by size ID. When provided, only products with the specified
+  size are returned.
+</ParamField>
+
+<ParamField query="isFeatured" type="boolean">
+  When `true`, returns only featured products. When `false`, returns only
+  non-featured products. Omit the parameter to return products regardless of
+  featured status.
+</ParamField>
+
+## Returns
+
+`Promise<Product[]>` — Resolves to an array of product objects. Returns an empty array when no products match the given filters.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the product.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the product.
+</ResponseField>
+
+<ResponseField name="price" type="string">
+  Price of the product as a string (e.g., `"29.99"`).
+</ResponseField>
+
+<ResponseField name="isFeatured" type="boolean">
+  Whether the product is marked as featured.
+</ResponseField>
+
+<ResponseField name="category" type="Category">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the category.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the category.
+    </ResponseField>
+    <ResponseField name="billboard" type="Billboard">
+      <Expandable title="properties">
+        <ResponseField name="id" type="string">
+          Unique identifier for the billboard.
+        </ResponseField>
+        <ResponseField name="label" type="string">
+          Text label displayed on the billboard.
+        </ResponseField>
+        <ResponseField name="imageUrl" type="string">
+          URL of the billboard background image.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="size" type="Size">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the size.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the size (e.g., `"Large"`).
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Short value of the size (e.g., `"L"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="color" type="Color">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the color.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the color (e.g., `"Red"`).
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Hex or CSS value of the color (e.g., `"#FF0000"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="images" type="Image[]">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the image.
+    </ResponseField>
+    <ResponseField name="url" type="string">
+      URL of the product image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example usage
+
+**Homepage — featured products only:**
+
+```typescript
+import getProducts from "@/actions/get-products";
+
+// app/page.tsx (Server Component)
+const featuredProducts = await getProducts({ isFeatured: true });
+```
+
+**Category page — filtered by category, color, and size:**
+
+```typescript
+import getProducts from "@/actions/get-products";
+
+// app/(routes)/category/[categoryId]/page.tsx (Server Component)
+const products = await getProducts({
+  categoryId: params.categoryId,
+  colorId: searchParams.colorId,
+  sizeId: searchParams.sizeId,
+});
+```
+
+## Response shape
+
+```typescript
+interface Product {
+  id: string;
+  category: Category;
+  name: string;
+  price: string;
+  isFeatured: boolean;
+  size: Size;
+  color: Color;
+  images: Image[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  billboard: Billboard;
+}
+
+interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+
+interface Size {
+  id: string;
+  name: string;
+  value: string;
+}
+
+interface Color {
+  id: string;
+  name: string;
+  value: string;
+}
+
+interface Image {
+  id: string;
+  url: string;
+}
+```

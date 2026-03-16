@@ -1,97 +1,62 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "E-Dokan Store"
+description: "A modern e-commerce storefront built with Next.js 13, featuring product browsing, category filtering, shopping cart, and Stripe checkout."
 ---
 
-## Setting up
+## Welcome to E-Dokan Store
 
-Get your documentation site up and running in minutes.
+E-Dokan is a fully-featured e-commerce storefront built on Next.js 13 App Router. It connects to a backend API to display products, categories, and promotional billboards — letting shoppers browse, filter, and purchase items with a seamless Stripe-powered checkout experience.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get the storefront running locally in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Core Features" icon="store" href="/features/product-browsing">
+    Explore product browsing, cart management, and checkout.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Configuration" icon="gear" href="/configuration/environment-variables">
+    Configure your API URL and environment variables.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/api-reference/get-products">
+    Data-fetching actions and state management hooks.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Key features
 
-Everything you need to create world-class documentation.
+<CardGroup cols={2}>
+  <Card title="Product browsing" icon="magnifying-glass">
+    Homepage showcases featured products with a full-width billboard. Each product card shows the image, name, price, color, and size at a glance.
+  </Card>
+  <Card title="Category filtering" icon="filter">
+    Browse by category with size and color filters — available on both desktop sidebar and a mobile-friendly slide-out panel.
+  </Card>
+  <Card title="Shopping cart" icon="cart-shopping">
+    Persistent cart powered by Zustand and localStorage. Add, remove, or clear items — your cart survives page refreshes.
+  </Card>
+  <Card title="Stripe checkout" icon="credit-card">
+    One-click checkout posts selected product IDs to the backend, which creates a Stripe session and redirects the shopper to a hosted payment page.
+  </Card>
+  <Card title="Product detail pages" icon="image">
+    Dedicated pages with image gallery, size/color display, and related products. A quick-preview modal lets shoppers inspect items without leaving the current page.
+  </Card>
+  <Card title="Responsive design" icon="mobile">
+    Built with Tailwind CSS. Fully responsive from mobile to widescreen — navigation, filters, and product grids all adapt to screen size.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Tech stack
 
-## Need inspiration?
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 13 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| State management | Zustand (with localStorage persistence) |
+| HTTP client | Axios |
+| UI components | Headless UI, Lucide React |
+| Payments | Stripe (via backend API) |
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+  E-Dokan Store is a **frontend-only** application. It requires a compatible backend API (such as an [ecommerce-admin](https://github.com/hempun10/edokan-store) instance) that exposes product, category, billboard, and checkout endpoints.
+</Note>

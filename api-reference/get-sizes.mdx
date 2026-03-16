@@ -1,0 +1,61 @@
+---
+title: "getSizes()"
+description: "Fetches all available product sizes from the store API"
+---
+
+`getSizes` is an async server-side action that retrieves the full list of sizes from the `GET /sizes` endpoint. It accepts no parameters and always returns all sizes configured in the store.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getSizes = async (): Promise<Size[]>
+```
+
+## Parameters
+
+This function takes no parameters.
+
+## Returns
+
+`Promise<Size[]>` — Resolves to an array of all size objects available in the store.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the size.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the size (e.g., `"Small"`, `"Medium"`, `"Large"`).
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Short-form value of the size used as a label or URL query value (e.g., `"S"`,
+  `"M"`, `"L"`).
+</ResponseField>
+
+## Example usage
+
+**Category page — loading sizes to populate the size filter:**
+
+```typescript
+import getSizes from "@/actions/get-sizes";
+
+// app/(routes)/category/[categoryId]/page.tsx (Server Component)
+const sizes = await getSizes();
+
+// sizes is passed to the Filter component
+// <Filter data={sizes} name="Sizes" valueKey="sizeId" />
+```
+
+## Response shape
+
+```typescript
+interface Size {
+  id: string;
+  name: string;
+  value: string;
+}
+```

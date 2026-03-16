@@ -1,0 +1,256 @@
+---
+title: "useCart()"
+description: "Zustand-powered shopping cart hook with localStorage persistence"
+---
+
+## Overview
+
+`useCart` is a [Zustand](https://zustand-demo.pmnd.rs/) store with the `persist` middleware. Cart items survive page refreshes and are written to `localStorage` under the key `cart-storage` using `createJSONStorage`.
+
+```typescript
+import useCart from "@/hooks/use-cart";
+```
+
+## Interface
+
+```typescript
+interface CartStore {
+  items: Product[];
+  addItem: (data: Product) => void;
+  removeItem: (id: string) => void;
+  removeAll: () => void;
+}
+```
+
+## Source
+
+```typescript
+import { create } from "zustand";
+import { CartStore, Product } from "@/types/types";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { toast } from "react-hot-toast";
+
+const useCart = create(
+  persist<CartStore>(
+    (set, get) => ({
+      items: [],
+      addItem: (data: Product) => {
+        const currentItems = get().items;
+        const existingItem = currentItems.find((item) => item.id === data.id);
+
+        if (existingItem) {
+          return toast("Item already in cart.");
+        }
+
+        set({ items: [...get().items, data] });
+        toast.success("Item added to cart.");
+      },
+      removeItem: (id: string) => {
+        set({ items: [...get().items.filter((item) => item.id !== id)] });
+        toast.success("Item removed from the cart");
+      },
+      removeAll: () => set({ items: [] }),
+    }),
+    {
+      name: "cart-storage",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
+
+export default useCart;
+```
+
+## Fields and Methods
+
+<ResponseField name="items" type="Product[]">
+  The array of products currently in the cart. Hydrated from `localStorage` on
+  first render.
+</ResponseField>
+
+<ResponseField name="addItem" type="(data: Product) => void">
+  Adds a product to the cart. If the product is already present (matched by
+  `id`), the item is **not** added again and a neutral toast `"Item already in
+  cart."` is shown. On success, shows `"Item added to cart."`.
+
+  <ParamField path="data" type="Product" required>
+    The full `Product` object to add to the cart.
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="removeItem" type="(id: string) => void">
+  Removes the product with the given `id` from the cart and shows `"Item
+  removed from the cart"`.
+
+  <ParamField path="id" type="string" required>
+    The `id` of the product to remove.
+  </ParamField>
+</ResponseField>
+
+<ResponseField name="removeAll" type="() => void">
+  Clears every item from the cart. Called automatically after a successful
+  Stripe checkout redirect (see [Clearing on checkout success](#clearing-on-checkout-success)).
+</ResponseField>
+
+## Persistence
+
+| Setting | Value |
+| --- | --- |
+| Middleware | `persist` from `zustand/middleware` |
+| Storage key | `cart-storage` |
+| Storage engine | `localStorage` via `createJSONStorage` |
+
+<Note>
+  Because the store is backed by `localStorage`, the serialised cart is a plain
+  JSON array stored at `localStorage.getItem("cart-storage")`.
+</Note>
+
+## Usage Examples
+
+### Accessing cart items in CartPage
+
+The full `CartPage` calls `useCart()` and guards against SSR hydration
+mismatches with an `isMounted` flag.
+
+```typescript
+// app/(routes)/cart/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import useCart from "@/hooks/use-cart";
+
+const CartPage = () => {
+  const [isMounted, setIsMounted] = useState(false);
+  const cart = useCart();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
+  return (
+    <ul>
+      {cart.items.map((item) => (
+        <CartItem key={item.id} data={item} />
+      ))}
+    </ul>
+  );
+};
+```
+
+### Adding an item from a product card
+
+```typescript
+// components/ui/product-card.tsx
+"use client";
+
+import { MouseEventHandler } from "react";
+import useCart from "@/hooks/use-cart";
+
+const ProductCard: React.FC<{ data: Product }> = ({ data }) => {
+  const cart = useCart();
+
+  const onAddToCart: MouseEventHandler<HTMLButtonElement> = (event) => {
+    event.stopPropagation();
+    cart.addItem(data);
+  };
+
+  // ...
+};
+```
+
+### Removing an item from CartItem
+
+```typescript
+// app/(routes)/cart/components/CartItem.tsx
+"use client";
+
+import useCart from "@/hooks/use-cart";
+
+const CartItem = ({ data }: CartItemsProps) => {
+  const cart = useCart();
+
+  const onRemove = () => {
+    cart.removeItem(data.id);
+  };
+
+  // ...
+};
+```
+
+### Clearing on checkout success
+
+`Summary.tsx` subscribes to individual slices using the selector pattern and
+calls `removeAll()` when Stripe redirects back with `?success=true`.
+
+```typescript
+// app/(routes)/cart/components/Summary.tsx
+"use client";
+
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import useCart from "@/hooks/use-cart";
+import { toast } from "react-hot-toast";
+
+const Summary = () => {
+  const searchParams = useSearchParams();
+  const items = useCart((state) => state.items);
+  const removeAll = useCart((state) => state.removeAll);
+
+  useEffect(() => {
+    if (searchParams.get("success")) {
+      toast.success("Payment completed.");
+      removeAll();
+    }
+
+    if (searchParams.get("canceled")) {
+      toast.error("Something went wrong.");
+    }
+  }, [searchParams, removeAll]);
+
+  // ...
+};
+```
+
+<Tip>
+  Subscribing to individual slices (`useCart((state) => state.items)`) rather
+  than the whole store prevents unnecessary re-renders when unrelated state
+  changes.
+</Tip>
+
+## Hydration Guard Pattern
+
+<Warning>
+  `useCart` is a **client-side only** hook — it reads from `localStorage`, which
+  does not exist during server-side rendering. Any component that calls
+  `useCart` must be a client component (`"use client"`) and should use an
+  `isMounted` guard to prevent hydration mismatches.
+</Warning>
+
+Use this pattern whenever rendering cart state in a component:
+
+```typescript
+"use client";
+
+import { useEffect, useState } from "react";
+import useCart from "@/hooks/use-cart";
+
+const MyComponent = () => {
+  const [isMounted, setIsMounted] = useState(false);
+  const cart = useCart();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Prevent rendering cart data on the server — avoids hydration mismatch
+  if (!isMounted) {
+    return null;
+  }
+
+  return <div>{cart.items.length} items in cart</div>;
+};
+```

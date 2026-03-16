@@ -1,0 +1,98 @@
+---
+title: "Environment variables"
+description: "Configure E-Dokan Store with the required environment variables"
+---
+
+E-Dokan Store requires one environment variable to connect the storefront to its backend API.
+
+## Required variable
+
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | The base URL of the E-Dokan backend API, without a trailing slash |
+
+## Setting up `.env.local`
+
+Create a `.env.local` file in the root of the project (next to `package.json`):
+
+```bash
+touch .env.local
+```
+
+Add the following content, replacing the value with your actual API URL:
+
+```bash .env.local
+NEXT_PUBLIC_API_URL=https://your-api-url.com
+```
+
+<Warning>
+Never commit `.env.local` to version control. It is already listed in `.gitignore` by default in Next.js projects. Committing API URLs can expose your backend infrastructure to the public.
+</Warning>
+
+## How the variable is used
+
+The `NEXT_PUBLIC_` prefix is a Next.js convention that makes the variable available in **both server and client components**. Without this prefix, the variable would only be accessible on the server.
+
+Every data-fetching action constructs its endpoint URL from this variable at module load time:
+
+```typescript actions/get-products.tsx
+import { Product } from "@/types/types";
+
+const URL = `${process.env.NEXT_PUBLIC_API_URL}/products`;
+```
+
+The same pattern is used across all action files:
+
+| Action file | Endpoint constructed |
+| --- | --- |
+| `actions/get-products.tsx` | `NEXT_PUBLIC_API_URL/products` |
+| `actions/get-product.tsx` | `NEXT_PUBLIC_API_URL/products/:id` |
+| `actions/get-catgeories.tsx` | `NEXT_PUBLIC_API_URL/categories` |
+| `actions/get-category.tsx` | `NEXT_PUBLIC_API_URL/categories/:id` |
+| `actions/get-billboard.tsx` | `NEXT_PUBLIC_API_URL/billboards/:id` |
+| `actions/get-sizes.tsx` | `NEXT_PUBLIC_API_URL/sizes` |
+| `actions/get-colors.tsx` | `NEXT_PUBLIC_API_URL/colors` |
+
+The variable is also used directly in the browser during checkout. The cart `Summary` component posts to the backend using `axios` from a client component:
+
+```typescript app/(routes)/cart/components/Summary.tsx
+const response = await axios.post(
+  `${process.env.NEXT_PUBLIC_API_URL}/checkout`,
+  {
+    productIds: items.map((item) => item.id),
+  }
+);
+```
+
+Because this runs in the browser, the `NEXT_PUBLIC_` prefix is essential — Next.js inlines the value into the client bundle at build time.
+
+## Setting variables on hosting platforms
+
+### Vercel
+
+<Steps>
+  <Step title="Open project settings">
+    In the [Vercel dashboard](https://vercel.com), navigate to your project and click **Settings**.
+  </Step>
+  <Step title="Add the environment variable">
+    Go to **Environment Variables**, enter `NEXT_PUBLIC_API_URL` as the key and your API base URL as the value. Select the environments where it should apply (Production, Preview, Development).
+  </Step>
+  <Step title="Redeploy">
+    Trigger a new deployment so the variable is picked up. Environment variables set after the build are not applied until a redeploy.
+  </Step>
+</Steps>
+
+<Tip>
+On Vercel you can set different values per environment (Production, Preview, Development), which is useful for pointing the preview branch at a staging API.
+</Tip>
+
+### Other platforms
+
+For self-hosted deployments (VPS, Docker, etc.), export the variable in your shell environment or process manager before starting the app:
+
+```bash
+export NEXT_PUBLIC_API_URL=https://your-api-url.com
+npm run start
+```
+
+See [Self-hosted deployment](/deployment/self-hosted) for a full walkthrough including PM2 configuration.

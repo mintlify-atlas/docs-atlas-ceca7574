@@ -1,0 +1,161 @@
+---
+title: "getProduct()"
+description: "Fetches a single product by ID from the store API"
+---
+
+`getProduct` is an async server-side action that retrieves a single product from the `GET /products/:id` endpoint using the product's unique identifier.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getProduct = async (id: string): Promise<Product>
+```
+
+## Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the product to fetch. This is typically sourced from
+  the dynamic route segment (e.g., `params.productId`).
+</ParamField>
+
+## Returns
+
+`Promise<Product>` — Resolves to a single product object matching the given ID.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the product.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the product.
+</ResponseField>
+
+<ResponseField name="price" type="string">
+  Price of the product as a string (e.g., `"29.99"`).
+</ResponseField>
+
+<ResponseField name="isFeatured" type="boolean">
+  Whether the product is marked as featured.
+</ResponseField>
+
+<ResponseField name="category" type="Category">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the category.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the category.
+    </ResponseField>
+    <ResponseField name="billboard" type="Billboard">
+      <Expandable title="properties">
+        <ResponseField name="id" type="string">
+          Unique identifier for the billboard.
+        </ResponseField>
+        <ResponseField name="label" type="string">
+          Text label displayed on the billboard.
+        </ResponseField>
+        <ResponseField name="imageUrl" type="string">
+          URL of the billboard background image.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="size" type="Size">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the size.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the size (e.g., `"Large"`).
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Short value of the size (e.g., `"L"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="color" type="Color">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the color.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the color (e.g., `"Red"`).
+    </ResponseField>
+    <ResponseField name="value" type="string">
+      Hex or CSS value of the color (e.g., `"#FF0000"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="images" type="Image[]">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the image.
+    </ResponseField>
+    <ResponseField name="url" type="string">
+      URL of the product image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example usage
+
+**Product detail page:**
+
+```typescript
+import getProduct from "@/actions/get-product";
+
+// app/(routes)/product/[productId]/page.tsx (Server Component)
+const product = await getProduct(params.productId);
+```
+
+## Response shape
+
+```typescript
+interface Product {
+  id: string;
+  category: Category;
+  name: string;
+  price: string;
+  isFeatured: boolean;
+  size: Size;
+  color: Color;
+  images: Image[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  billboard: Billboard;
+}
+
+interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+
+interface Size {
+  id: string;
+  name: string;
+  value: string;
+}
+
+interface Color {
+  id: string;
+  name: string;
+  value: string;
+}
+
+interface Image {
+  id: string;
+  url: string;
+}
+```

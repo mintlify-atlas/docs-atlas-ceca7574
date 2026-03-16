@@ -1,0 +1,178 @@
+---
+title: "Self-hosted deployment"
+description: "Deploy E-Dokan Store on your own server or VPS"
+---
+
+You can run E-Dokan Store on any Linux server or VPS that supports Node.js. This guide covers a production-ready setup using PM2 as a process manager and nginx as a reverse proxy.
+
+## Prerequisites
+
+- Node.js 18 or later
+- npm, yarn, or pnpm
+- A running E-Dokan backend API with a publicly accessible URL
+- (Recommended) PM2 for process management
+- (Recommended) nginx for reverse proxying and TLS termination
+
+Verify your Node.js version:
+
+```bash
+node --version
+# v18.x.x or later
+```
+
+## Deployment steps
+
+<Steps>
+  <Step title="Clone the repository and install dependencies">
+    ```bash
+    git clone https://github.com/your-org/ecommerce-store.git
+    cd ecommerce-store
+    npm install
+    ```
+
+    <CodeGroup>
+
+    ```bash npm
+    npm install
+    ```
+
+    ```bash yarn
+    yarn install
+    ```
+
+    ```bash pnpm
+    pnpm install
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Set the environment variable">
+    Create a `.env.local` file in the project root:
+
+    ```bash .env.local
+    NEXT_PUBLIC_API_URL=https://your-api-url.com
+    ```
+
+    Alternatively, export it in your shell session before running the build:
+
+    ```bash
+    export NEXT_PUBLIC_API_URL=https://your-api-url.com
+    ```
+
+    <Warning>
+      `NEXT_PUBLIC_API_URL` is inlined into the client bundle at build time. You must set the variable **before** running `npm run build`. Changing it after the build requires a rebuild.
+    </Warning>
+  </Step>
+
+  <Step title="Build the application">
+    ```bash
+    npm run build
+    ```
+
+    This runs `next build` and produces the optimized production output in the `.next/` directory. The build must complete without errors before proceeding.
+
+    <Note>
+      The `.next/` directory contains the entire compiled application. Do not delete it — `npm run start` reads from it at runtime.
+    </Note>
+  </Step>
+
+  <Step title="Start the production server">
+    ```bash
+    npm run start
+    ```
+
+    This runs `next start`, which serves the application on **port 3000** by default. To use a different port:
+
+    ```bash
+    npm run start -- -p 8080
+    ```
+
+    Visit `http://your-server-ip:3000` to verify the storefront is running.
+  </Step>
+</Steps>
+
+## Running as a background process with PM2
+
+PM2 keeps the app running after you close your SSH session and automatically restarts it if it crashes.
+
+Install PM2 globally:
+
+```bash
+npm install -g pm2
+```
+
+Start E-Dokan Store with PM2:
+
+```bash
+pm2 start npm --name "ecommerce-store" -- run start
+```
+
+Save the PM2 process list so it survives server reboots:
+
+```bash
+pm2 save
+pm2 startup
+```
+
+Run the command printed by `pm2 startup` to register PM2 with your system's init manager.
+
+Useful PM2 commands:
+
+```bash
+pm2 status              # view running processes
+pm2 logs ecommerce-store  # tail application logs
+pm2 restart ecommerce-store
+pm2 stop ecommerce-store
+```
+
+## Reverse proxy with nginx
+
+Running nginx in front of Next.js allows you to terminate TLS, serve the app on port 80/443, and add caching headers.
+
+Install nginx and create a site configuration:
+
+```nginx /etc/nginx/sites-available/ecommerce-store
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable the site and reload nginx:
+
+```bash
+ln -s /etc/nginx/sites-available/ecommerce-store /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+```
+
+<Tip>
+Use [Certbot](https://certbot.eff.org/) with the nginx plugin to automatically provision and renew a free Let's Encrypt TLS certificate: `certbot --nginx -d your-domain.com`.
+</Tip>
+
+## Build output reference
+
+After `npm run build` completes, the `.next/` directory contains:
+
+| Path | Contents |
+| --- | --- |
+| `.next/server/` | Server-side rendered page bundles |
+| `.next/static/` | Client-side JavaScript chunks, CSS, and static assets |
+| `.next/cache/` | Build cache (can be preserved between deployments to speed up rebuilds) |
+
+<Info>
+The `.next/` directory is environment-specific. Never copy a build artifact from one environment (e.g. staging) and use it in another (e.g. production) if the `NEXT_PUBLIC_API_URL` values differ.
+</Info>

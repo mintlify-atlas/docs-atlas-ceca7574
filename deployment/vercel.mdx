@@ -1,0 +1,75 @@
+---
+title: "Deploy to Vercel"
+description: "Deploy E-Dokan Store to Vercel in minutes"
+---
+
+Vercel is the recommended deployment target for Next.js applications. It auto-detects the framework, configures build settings, and handles incremental static regeneration, image optimization, and edge caching without any additional configuration.
+
+## Prerequisites
+
+- The E-Dokan Store repository pushed to GitHub, GitLab, or Bitbucket
+- A running E-Dokan backend API with a publicly accessible URL
+- A [Vercel account](https://vercel.com)
+
+## Deployment steps
+
+<Steps>
+  <Step title="Push the repository to GitHub">
+    Ensure your latest changes are committed and pushed to a remote repository:
+
+    ```bash
+    git add .
+    git commit -m "ready for deployment"
+    git push origin main
+    ```
+  </Step>
+
+  <Step title="Import the project in Vercel">
+    Go to [vercel.com/new](https://vercel.com/new) and click **Add New Project**. Authorize Vercel to access your Git provider, then select the `ecommerce-store` repository from the list and click **Import**.
+
+    Vercel automatically detects Next.js and pre-fills the framework preset and build settings. No changes are needed:
+
+    | Setting | Value |
+    | --- | --- |
+    | Framework preset | Next.js |
+    | Build command | `next build` |
+    | Output directory | `.next` |
+    | Install command | `npm install` |
+  </Step>
+
+  <Step title="Add the environment variable">
+    Before deploying, scroll down to the **Environment Variables** section on the import page. Add the following variable:
+
+    | Key | Value |
+    | --- | --- |
+    | `NEXT_PUBLIC_API_URL` | Your backend API base URL, e.g. `https://your-api-url.com` |
+
+    <Warning>
+      Do not include a trailing slash in `NEXT_PUBLIC_API_URL`. The action files append path segments directly (e.g. `/products`), so a trailing slash will result in double-slash URLs like `https://your-api-url.com//products`.
+    </Warning>
+  </Step>
+
+  <Step title="Deploy">
+    Click **Deploy**. Vercel clones the repository, runs `npm install` and `next build`, and publishes the output. The first deployment typically takes 1–2 minutes.
+
+    Once complete, Vercel provides a `.vercel.app` URL where the storefront is live.
+  </Step>
+
+  <Step title="Add a custom domain (optional)">
+    To use your own domain, go to your project in the Vercel dashboard, open **Settings → Domains**, and add your domain. Vercel automatically provisions an SSL certificate via Let's Encrypt.
+
+    Update your DNS records as instructed by Vercel (typically an `A` record or `CNAME` depending on your domain registrar).
+  </Step>
+</Steps>
+
+## Redeployments
+
+Every push to the `main` branch (or whichever branch you connected) triggers an automatic production deployment. Pull requests automatically receive preview deployments with isolated URLs.
+
+<Tip>
+Use Vercel's **Preview** environment to point the storefront at a staging version of the backend API. Set a separate value for `NEXT_PUBLIC_API_URL` scoped to the Preview environment in your project's environment variable settings.
+</Tip>
+
+## Build output
+
+The `next build` command compiles the application into the `.next/` directory. On Vercel this is handled entirely by the platform — you do not need to manage build artifacts manually.

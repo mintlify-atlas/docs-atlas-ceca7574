@@ -1,0 +1,156 @@
+---
+title: "Categories and filters"
+description: "Browse products by category and filter by size or color"
+---
+
+Category pages let shoppers narrow their browsing to a specific product group and further refine results by size and color. Filter state lives entirely in the URL so pages are shareable and bookmarkable.
+
+## Category page
+
+Category pages are served at `/category/[categoryId]`. The page is a server component with `export const revalidate = 0`, so product data is always fresh.
+
+```typescript app/(routes)/category/[categoryId]/page.tsx
+export const revalidate = 0;
+
+const CategoryPage = async ({ params, searchParams }: CategoryProps) => {
+  const products = await getProducts({
+    categoryId: params.categoryId,
+    colorId: searchParams.colorId,
+    sizeId: searchParams.sizeId,
+  });
+  const sizes = await getSizes();
+  const colors = await getColors();
+  const category = await getCategory(params.categoryId);
+  // ...
+};
+```
+
+The `CategoryProps` type captures both the route segment and the filter search params:
+
+```typescript
+export interface CategoryProps {
+  params: {
+    categoryId: string;
+  };
+  searchParams: {
+    colorId: string;
+    sizeId: string;
+  };
+}
+```
+
+### Billboard banner
+
+Each category has its own billboard. The category object returned by `getCategory` includes a nested `billboard` field, which is passed directly to the `Billboard` component:
+
+```typescript
+export interface Category {
+  id: string;
+  name: string;
+  billboard: Billboard;
+}
+```
+
+## Filters
+
+Two filter dimensions are available on every category page: **Sizes** and **Colors**.
+
+<Tabs>
+  <Tab title="Desktop">
+    On large screens (`lg` breakpoint and above), both filters are rendered in a sticky left sidebar. The `Filter` component is rendered twice — once with `valueKey="sizeId"` and once with `valueKey="colorId"`:
+
+    ```typescript
+    <div className="hidden lg:block">
+      <Filter valueKey="sizeId" name="Sizes" data={sizes} />
+      <Filter valueKey="colorId" name="Colors" data={colors} />
+    </div>
+    ```
+  </Tab>
+  <Tab title="Mobile">
+    On smaller screens the sidebar is hidden. A "Filters" button (`lg:hidden`) opens the `MobileFilter` component, which uses a Headless UI `Dialog` to slide in a panel from the right edge of the screen. The panel contains the same two `Filter` components.
+
+    ```typescript
+    <Button className="flex items-center gap-x-2 lg:hidden" onClick={onOpen}>
+      Filters <Plus size={20} />
+    </Button>
+    ```
+
+    An `X` icon button in the top-right corner closes the panel.
+  </Tab>
+</Tabs>
+
+### How filter state works
+
+The `Filter` component reads and writes URL search params using `useSearchParams` and `useRouter` from Next.js, together with the `query-string` library.
+
+```typescript components/Filter.tsx
+const onClick = (id: string) => {
+  const current = queryString.parse(searchParams.toString());
+  const query = {
+    ...current,
+    [valueKey]: id,
+  };
+  if (current[valueKey] === id) {
+    query[valueKey] = null; // toggling off
+  }
+
+  const url = queryString.stringifyUrl(
+    { url: window.location.href, query },
+    { skipNull: true }
+  );
+  router.push(url);
+};
+```
+
+Key behaviors:
+
+- **Toggle on:** clicking an unselected filter value appends `?sizeId=<id>` or `?colorId=<id>` to the URL.
+- **Toggle off:** clicking the currently active value sets it to `null`, which `skipNull: true` removes from the URL entirely.
+- **Combined filters:** because size and color use separate keys, both can be active simultaneously. A URL like `?sizeId=abc&colorId=xyz` sends both values to `getProducts`, which applies both as AND conditions.
+- **Active state:** the selected button receives `bg-black text-white` classes; unselected buttons are white with a gray border.
+
+<Info>
+Filter state is stored only in the URL. Refreshing the page, sharing the link, or navigating back preserves the exact filter selection.
+</Info>
+
+## No results state
+
+When `getProducts` returns an empty array for the current filter combination, the `NoResults` component is rendered in place of the product grid:
+
+```typescript
+{products.length === 0 && <NoResults />}
+```
+
+No error is thrown — the page renders normally with an empty state message.
+
+## Filter props
+
+The `Filter` component accepts the following props:
+
+```typescript
+export interface FilterProps {
+  data: (Size | Color)[];
+  name: string;
+  valueKey: string;
+}
+```
+
+- `data` — the list of available options (sizes or colors)
+- `name` — the section heading displayed above the options
+- `valueKey` — the URL search param key to read and write (`"sizeId"` or `"colorId"`)
+
+Sizes and colors share the same filter UI because both `Size` and `Color` have `id` and `name` fields:
+
+```typescript
+export interface Size {
+  id: string;
+  name: string;
+  value: string;
+}
+
+export interface Color {
+  id: string;
+  name: string;
+  value: string; // hex color value
+}
+```

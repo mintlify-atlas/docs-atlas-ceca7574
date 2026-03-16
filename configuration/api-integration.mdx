@@ -1,0 +1,258 @@
+---
+title: "API integration"
+description: "How E-Dokan Store connects to the backend API"
+---
+
+E-Dokan Store is a pure frontend application. All product, category, and checkout data is fetched from a separate backend API whose base URL is configured via [`NEXT_PUBLIC_API_URL`](/configuration/environment-variables).
+
+## Data fetching strategy
+
+All server-side data fetching uses the native `fetch` API provided by Next.js. No third-party HTTP client is used for server components. Each action file constructs its URL and calls `fetch` directly:
+
+```typescript
+const res = await fetch(urlWithQuery);
+return res.json();
+```
+
+<Note>
+The actions do not pass a `next.revalidate` option, which means Next.js uses its default behavior: no caching in the App Router (`cache: 'no-store'` equivalent). Every request fetches fresh data from the backend.
+</Note>
+
+The single exception is the checkout flow, which is triggered from a **client component** (`Summary.tsx`) and uses `axios` to make a `POST` request directly from the browser.
+
+## Endpoints
+
+### `GET /products`
+
+Fetches a list of products. Supports optional query parameters for filtering.
+
+**Query parameters**
+
+<ParamField query="categoryId" type="string">
+  Filter products by category ID.
+</ParamField>
+
+<ParamField query="colorId" type="string">
+  Filter products by color ID.
+</ParamField>
+
+<ParamField query="sizeId" type="string">
+  Filter products by size ID.
+</ParamField>
+
+<ParamField query="isFeatured" type="boolean">
+  When `true`, returns only featured products. When `false`, returns non-featured products. Omit to return all products regardless of featured status.
+</ParamField>
+
+**Response** — `Product[]`
+
+<ResponseField name="id" type="string" required>
+  Unique product identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Product display name.
+</ResponseField>
+
+<ResponseField name="price" type="string" required>
+  Product price as a string (e.g. `"29.99"`).
+</ResponseField>
+
+<ResponseField name="isFeatured" type="boolean" required>
+  Whether the product is featured on the homepage.
+</ResponseField>
+
+<ResponseField name="category" type="object" required>
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>Category ID.</ResponseField>
+    <ResponseField name="name" type="string" required>Category name.</ResponseField>
+    <ResponseField name="billboard" type="object" required>
+      <Expandable title="properties">
+        <ResponseField name="id" type="string" required>Billboard ID.</ResponseField>
+        <ResponseField name="label" type="string" required>Billboard label text.</ResponseField>
+        <ResponseField name="imageUrl" type="string" required>URL of the billboard image.</ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="size" type="object" required>
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>Size ID.</ResponseField>
+    <ResponseField name="name" type="string" required>Size label (e.g. `"Medium"`).</ResponseField>
+    <ResponseField name="value" type="string" required>Size abbreviation (e.g. `"M"`).</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="color" type="object" required>
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>Color ID.</ResponseField>
+    <ResponseField name="name" type="string" required>Color name (e.g. `"Black"`).</ResponseField>
+    <ResponseField name="value" type="string" required>Hex color code (e.g. `"#000000"`).</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="images" type="Image[]" required>
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>Image ID.</ResponseField>
+    <ResponseField name="url" type="string" required>Cloudinary image URL.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+### `GET /products/:id`
+
+Fetches a single product by its ID.
+
+**Path parameter** — `id: string` — the product ID.
+
+**Response** — a single `Product` object with the same shape as above.
+
+---
+
+### `GET /categories`
+
+Fetches all available categories.
+
+**Response** — `Category[]`
+
+<ResponseField name="id" type="string" required>
+  Unique category identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Category display name.
+</ResponseField>
+
+<ResponseField name="billboard" type="object" required>
+  The billboard associated with this category.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string" required>Billboard ID.</ResponseField>
+    <ResponseField name="label" type="string" required>Billboard label text.</ResponseField>
+    <ResponseField name="imageUrl" type="string" required>URL of the billboard image.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+---
+
+### `GET /categories/:id`
+
+Fetches a single category by its ID.
+
+**Path parameter** — `id: string` — the category ID.
+
+**Response** — a single `Category` object with the same shape as above.
+
+---
+
+### `GET /billboards/:id`
+
+Fetches a single billboard by its ID. Billboards are hero-image banners displayed at the top of category pages.
+
+**Path parameter** — `id: string` — the billboard ID.
+
+**Response** — `Billboard`
+
+<ResponseField name="id" type="string" required>
+  Unique billboard identifier.
+</ResponseField>
+
+<ResponseField name="label" type="string" required>
+  Text label overlaid on the billboard image.
+</ResponseField>
+
+<ResponseField name="imageUrl" type="string" required>
+  Cloudinary URL of the billboard background image.
+</ResponseField>
+
+---
+
+### `GET /sizes`
+
+Fetches all available sizes.
+
+**Response** — `Size[]`
+
+<ResponseField name="id" type="string" required>
+  Unique size identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Human-readable size label (e.g. `"Large"`).
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  Size abbreviation used for display (e.g. `"L"`).
+</ResponseField>
+
+---
+
+### `GET /colors`
+
+Fetches all available colors.
+
+**Response** — `Color[]`
+
+<ResponseField name="id" type="string" required>
+  Unique color identifier.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Human-readable color name (e.g. `"White"`).
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  Hex color code (e.g. `"#FFFFFF"`).
+</ResponseField>
+
+---
+
+### `POST /checkout`
+
+Initiates a Stripe checkout session for the items in the cart. This request is made **client-side** from the browser, not from a Next.js server action.
+
+**Request body**
+
+<ParamField body="productIds" type="string[]" required>
+  Array of product IDs to include in the checkout session.
+</ParamField>
+
+**Response**
+
+<ResponseField name="url" type="string" required>
+  The Stripe-hosted checkout URL. The storefront redirects the browser to this URL to complete payment (`window.location = response.data.url`).
+</ResponseField>
+
+## Error handling
+
+The action files do not implement explicit error handling — they return the parsed JSON response directly. If the API returns a non-OK HTTP status, `res.json()` will still be called and may return an error payload or throw.
+
+The checkout flow catches errors at the component level:
+
+```typescript app/(routes)/cart/components/Summary.tsx
+try {
+  setIsLoading(true);
+  const response = await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/checkout`,
+    { productIds: items.map((item) => item.id) }
+  );
+  window.location = response.data.url;
+} catch (error) {
+  console.log(error);
+} finally {
+  setIsLoading(false);
+}
+```
+
+<Info>
+Consider wrapping the server-side `fetch` calls in `try/catch` blocks and returning sensible fallback values (empty arrays, `null`) to prevent pages from crashing when the backend is unreachable.
+</Info>
+
+## CORS
+
+Because the `POST /checkout` request originates from the user's browser, the backend API must include an `Access-Control-Allow-Origin` header that permits requests from the storefront's domain.
+
+<Warning>
+If your backend does not allow cross-origin requests from your storefront domain, the checkout button will fail silently in the browser. Verify your backend CORS configuration allows `POST` requests from your production URL.
+</Warning>

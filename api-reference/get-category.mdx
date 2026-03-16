@@ -1,0 +1,81 @@
+---
+title: "getCategory()"
+description: "Fetches a single category by ID from the store API"
+---
+
+`getCategory` is an async server-side action that retrieves a single category from the `GET /categories/:id` endpoint using the category's unique identifier.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getCategory = async (id: string): Promise<Category>
+```
+
+## Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the category to fetch. This is typically sourced from
+  the dynamic route segment (e.g., `params.categoryId`).
+</ParamField>
+
+## Returns
+
+`Promise<Category>` — Resolves to a single category object matching the given ID, including its associated billboard.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the category.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the category (e.g., `"Shirts"`, `"Shoes"`).
+</ResponseField>
+
+<ResponseField name="billboard" type="Billboard">
+  The billboard associated with this category, displayed at the top of the
+  category page.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the billboard.
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Text label displayed on the billboard.
+    </ResponseField>
+    <ResponseField name="imageUrl" type="string">
+      URL of the billboard background image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example usage
+
+**Category page — loading the category to display its billboard and name:**
+
+```typescript
+import getCategory from "@/actions/get-category";
+
+// app/(routes)/category/[categoryId]/page.tsx (Server Component)
+const category = await getCategory(params.categoryId);
+
+// category.billboard is passed to the Billboard component
+// <Billboard data={category.billboard} />
+```
+
+## Response shape
+
+```typescript
+interface Category {
+  id: string;
+  name: string;
+  billboard: Billboard;
+}
+
+interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+```

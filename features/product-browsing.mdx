@@ -1,0 +1,162 @@
+---
+title: "Product browsing"
+description: "How the E-Dokan homepage and product detail pages work"
+---
+
+E-Dokan presents products through two primary surfaces: the homepage, which highlights featured items under a billboard banner, and the product detail page, which provides a full image gallery, product metadata, and an "Add to Cart" action.
+
+## Homepage
+
+The homepage is a server component that fetches data on every request (`export const revalidate = 0`) and renders two sections: a billboard banner and a featured product list.
+
+```typescript app/(routes)/page.tsx
+export const revalidate = 0;
+
+const HomePage = async () => {
+  const billboard = await getBillboard("75c73606-f10d-48eb-9d57-440b98c484f6");
+  const product = await getProducts({ isFeatured: true });
+  return (
+    <Container>
+      <div className="space-y-20 pb-10">
+        <Billboard data={billboard} />
+        <div className="flex flex-col gap-y-8 px-4 sm:px-6 lg:px-8">
+          <ProductList title="Featured Product" items={product} />
+        </div>
+      </div>
+    </Container>
+  );
+};
+```
+
+### Billboard banner
+
+The `Billboard` component renders a full-width hero image with a centered label. It accepts a `Billboard` data object:
+
+```typescript
+export interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+```
+
+The background image is applied inline via `style={{ backgroundImage: \`url(${data?.imageUrl})\` }}`, and the label is displayed as large bold text centered over the image.
+
+### Featured product list
+
+`getProducts({ isFeatured: true })` fetches only products marked as featured. The `ProductList` component renders them in a responsive grid (1 column on mobile, up to 4 columns on large screens). When the items array is empty, a `NoResults` component is shown in its place.
+
+## Product cards
+
+Each item in the grid is rendered by `ProductCard`. On hover, two icon buttons appear over the product image:
+
+<Columns cols={2}>
+  <Card title="Quick preview" icon="expand">
+    Opens the preview modal with a gallery and product info without leaving the current page.
+  </Card>
+  <Card title="Add to cart" icon="shopping-cart">
+    Calls `cart.addItem(data)` directly from the card. Shows a toast if the item is already in the cart.
+  </Card>
+</Columns>
+
+The card body displays:
+- Product image (first image from the `images` array)
+- Product name
+- Category name
+- Price (formatted by the `Currency` component)
+
+Clicking the card body navigates to `/product/[productId]`.
+
+## Quick preview modal
+
+The preview modal is powered by the `usePreviewModal` Zustand store:
+
+```typescript hooks/use-preview-modal.ts
+interface PreviewModalStore {
+  isOpen: boolean;
+  data?: Product;
+  onOpen: (data: Product) => void;
+  onClose: () => void;
+}
+
+const usePreviewModal = create<PreviewModalStore>((set) => ({
+  isOpen: false,
+  data: undefined,
+  onOpen: (data: Product) => set({ isOpen: true, data }),
+  onClose: () => set({ isOpen: false }),
+}));
+```
+
+When `onOpen(data)` is called from a product card, the `PreviewModal` component renders the same `Gallery` and `Info` components used on the full product detail page, inside a modal overlay. This lets shoppers inspect images and add an item to the cart without a full page navigation.
+
+## Product detail page
+
+The product detail page lives at `/product/[productId]`. It is a server component that fetches both the individual product and a list of suggested products from the same category.
+
+```typescript app/(routes)/product/[productId]/page.tsx
+const ProductPage = async ({ params }: ProductPageProps) => {
+  const product = await getProduct(params.productId);
+  const suggestedProducts = await getProducts({
+    categoryId: product?.category?.id,
+  });
+  return (
+    <div className="bg-white">
+      <Container>
+        <div className="px-4 py-10 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+            <Gallery images={product.images} />
+            <div className="mt-10 px-4 sm:mt-16 sm:px-0 lg:mt-0">
+              <Info data={product} />
+            </div>
+          </div>
+          <hr className="my-10" />
+          <ProductList title="You may Like" items={suggestedProducts} />
+        </div>
+      </Container>
+    </div>
+  );
+};
+```
+
+### Image gallery
+
+The `Gallery` component uses Headless UI `Tab.Group` to render a main image panel alongside a row of up to four thumbnail tabs. Clicking a thumbnail switches the active panel image. The component accepts an array of `Image` objects:
+
+```typescript
+export interface Image {
+  id: string;
+  url: string;
+}
+```
+
+Thumbnails are hidden on mobile (`sm:block`) to keep the layout clean on small screens.
+
+### Product info panel
+
+The `Info` component displays:
+- Product name (h1)
+- Price via the `Currency` component
+- Size (text label)
+- Color (filled circle swatch using `style={{ background: data?.color?.value }}`)
+- "Add To Cart" button that calls `cart.addItem(data)`
+
+```typescript
+export interface Product {
+  id: string;
+  category: Category;
+  name: string;
+  price: string;
+  isFeatured: boolean;
+  size: Size;
+  color: Color;
+  images: Image[];
+}
+```
+
+### Related products
+
+Below the gallery and info panel, a `ProductList` titled "You may Like" renders other products from the same category. This list uses the same `ProductCard` grid as the homepage.
+
+<Note>
+Both the homepage and product detail page use `export const revalidate = 0`, which disables Next.js caching and ensures fresh data is fetched on every request.
+</Note>

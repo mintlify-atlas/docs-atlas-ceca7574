@@ -1,0 +1,154 @@
+---
+title: "Shopping cart"
+description: "Managing the persistent shopping cart"
+---
+
+The E-Dokan cart is a client-side Zustand store that persists to `localStorage`. Items survive page refreshes and browser restarts. The cart page at `/cart` renders a list of added items alongside an order summary with a total price.
+
+## useCart hook
+
+All cart logic lives in the `useCart` Zustand store. The full interface is:
+
+```typescript
+export interface CartStore {
+  items: Product[];
+  addItem: (data: Product) => void;
+  removeItem: (id: string) => void;
+  removeAll: () => void;
+}
+```
+
+The store is created with the `persist` middleware, which serialises state to `localStorage` under the key `cart-storage`:
+
+```typescript hooks/use-cart.ts
+const useCart = create(
+  persist<CartStore>(
+    (set, get) => ({
+      items: [],
+      addItem: (data: Product) => {
+        const currentItems = get().items;
+        const existingItem = currentItems.find((item) => item.id === data.id);
+
+        if (existingItem) {
+          return toast("Item already in cart.");
+        }
+
+        set({ items: [...get().items, data] });
+        toast.success("Item added to cart.");
+      },
+      removeItem: (id: string) => {
+        set({ items: [...get().items.filter((item) => item.id !== id)] });
+        toast.success("Item removed from the cart");
+      },
+      removeAll: () => set({ items: [] }),
+    }),
+    {
+      name: "cart-storage",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
+```
+
+## Adding items
+
+Items can be added to the cart from two places:
+
+<Columns cols={2}>
+  <Card title="Product card" icon="layout-grid">
+    Hovering a product card reveals a shopping cart icon button. Clicking it calls `cart.addItem(data)` without navigating away from the current page.
+  </Card>
+  <Card title="Product detail page" icon="package">
+    The "Add To Cart" button in the `Info` component calls `cart.addItem(data)`. Also available inside the quick preview modal.
+  </Card>
+</Columns>
+
+### Duplicate prevention
+
+Before adding, `addItem` checks whether an item with the same `id` already exists in `items`. If a duplicate is found, a plain toast notification fires (`"Item already in cart."`) and the function returns early — the item is not added twice.
+
+<Note>
+Because products are keyed by `id`, the same product variant (size/color combination) cannot be added multiple times.
+</Note>
+
+## Cart page
+
+The cart page at `/cart` is a client component. It uses a `isMounted` guard to prevent hydration mismatches when reading `localStorage` state on the server:
+
+```typescript app/(routes)/cart/page.tsx
+const CartPage = () => {
+  const [isMounted, setIsMounted] = useState(false);
+  const cart = useCart();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+  // ...
+};
+```
+
+### Empty cart state
+
+When `cart.items` is empty, a plain text message is shown in place of the item list:
+
+```typescript
+{cart.items.length === 0 && (
+  <p className="text-neutral-500">No items added to cart.</p>
+)}
+```
+
+## Cart item display
+
+Each entry in the cart is rendered by the `CartItem` component. It displays:
+
+- Product image (first image from the `images` array)
+- Product name
+- Color name (text)
+- Size name (text, separated by a left border)
+- Price via the `Currency` component
+- An `X` icon button that calls `cart.removeItem(data.id)`
+
+```typescript app/(routes)/cart/components/CartItem.tsx
+const CartItem = ({ data }: CartItemsProps) => {
+  const cart = useCart();
+  const onRemove = () => {
+    cart.removeItem(data.id);
+  };
+  // ...
+};
+```
+
+The `CartItemsProps` type:
+
+```typescript
+export interface CartItemsProps {
+  data: Product;
+}
+```
+
+## Order summary
+
+The `Summary` component renders alongside the item list in a `lg:col-span-5` panel. It calculates the order total by summing the `price` field of every item in the cart:
+
+```typescript
+const totalPrice = items.reduce((total, item) => {
+  return total + Number(item.price);
+}, 0);
+```
+
+The total is displayed using the `Currency` component. The "Checkout" button is disabled when the cart is empty or when a checkout request is in flight.
+
+## Persistence
+
+<Columns cols={2}>
+  <Card title="Storage key" icon="database">
+    Cart state is saved to `localStorage` under the key `cart-storage`.
+  </Card>
+  <Card title="Cleared on checkout" icon="trash">
+    `removeAll()` is called automatically after a successful Stripe payment, clearing the persisted cart.
+  </Card>
+</Columns>

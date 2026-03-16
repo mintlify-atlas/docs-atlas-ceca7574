@@ -1,0 +1,78 @@
+---
+title: "getCategories()"
+description: "Fetches all store categories from the API"
+---
+
+`getCategories` is an async server-side action that retrieves the full list of categories from the `GET /categories` endpoint. It accepts no parameters and always returns the complete set of categories.
+
+<Note>
+  This is an async server-side function intended for use in Next.js Server Components. Do not call it from client components directly.
+</Note>
+
+## Function signature
+
+```typescript
+const getCategories = async (): Promise<Category[]>
+```
+
+## Parameters
+
+This function takes no parameters.
+
+## Returns
+
+`Promise<Category[]>` — Resolves to an array of all category objects available in the store.
+
+<ResponseField name="id" type="string">
+  Unique identifier for the category.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the category (e.g., `"Shirts"`, `"Shoes"`).
+</ResponseField>
+
+<ResponseField name="billboard" type="Billboard">
+  The billboard associated with the category, displayed at the top of the
+  category page.
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique identifier for the billboard.
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Text label displayed on the billboard.
+    </ResponseField>
+    <ResponseField name="imageUrl" type="string">
+      URL of the billboard background image.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example usage
+
+**Navbar — populating navigation links from all categories:**
+
+```typescript
+import getCategories from "@/actions/get-categories";
+
+// components/Navbar.tsx (Server Component)
+const categories = await getCategories();
+
+// categories is passed to MainNav to render navigation links
+// <MainNav data={categories} />
+```
+
+## Response shape
+
+```typescript
+interface Category {
+  id: string;
+  name: string;
+  billboard: Billboard;
+}
+
+interface Billboard {
+  id: string;
+  label: string;
+  imageUrl: string;
+}
+```
