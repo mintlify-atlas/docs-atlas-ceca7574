@@ -1,0 +1,87 @@
+{
+  "projectType": "saas",
+  "projectName": "E-Dokan Store",
+  "projectDescription": "A Next.js 13 e-commerce storefront that fetches products and categories from an external API, supports filtering by size and color, and handles checkout via Stripe integration.",
+  "theme": "almond",
+  "primaryColor": "#1a1a1a",
+  "lightColor": "#f5f5f0",
+  "darkColor": "#111111",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/product-browsing",
+              "features/categories-filters",
+              "features/shopping-cart",
+              "features/checkout"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/api-integration"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": ["deployment/vercel", "deployment/self-hosted"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Data Actions",
+            "pages": [
+              "api-reference/get-products",
+              "api-reference/get-product",
+              "api-reference/get-categories",
+              "api-reference/get-category",
+              "api-reference/get-billboard",
+              "api-reference/get-sizes",
+              "api-reference/get-colors"
+            ]
+          },
+          {
+            "group": "State Management",
+            "pages": [
+              "api-reference/use-cart",
+              "api-reference/use-preview-modal"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Product browsing with featured product showcase on the homepage",
+    "Category-based navigation with billboard banners",
+    "Product filtering by size and color (desktop and mobile)",
+    "Product detail pages with image gallery and quick preview modal",
+    "Persistent shopping cart using Zustand and localStorage",
+    "Stripe-powered checkout integration via external API",
+    "Fully responsive design with Tailwind CSS",
+    "Server-side data fetching with Next.js 13 App Router"
+  ],
+  "publicApiSurface": [
+    "getProducts({ categoryId?, colorId?, sizeId?, isFeatured? })",
+    "getProduct(id: string)",
+    "getCategories()",
+    "getCategory(id: string)",
+    "getBillboard(id: string)",
+    "getSizes()",
+    "getColors()",
+    "useCart() — addItem, removeItem, removeAll",
+    "usePreviewModal() — onOpen, onClose, isOpen, data"
+  ]
+}
